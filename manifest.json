@@ -8,8 +8,8 @@
     "en": "Editor Background"
   },
   "version": "1.2.1",
-  "author": "eachann1024",
-  "repo": "eachann1024/block-canvas-dots",
+  "author": "Block Community",
+  "repo": "blockmd-plugins/block-canvas-dots",
   "summary": {
     "zh": "为笔记铺上与行高对齐的点阵或方格，增加对比度，稳定追踪每一行",
     "en": "Line-aligned dot or grid background for notes, adding contrast to track each line"
