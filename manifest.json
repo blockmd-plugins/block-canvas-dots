@@ -2,6 +2,7 @@
   "app": "blockmd",
   "schema_version": 1,
   "id": "block-canvas-dots",
+  "category": "appearance",
   "name": {
     "zh": "编辑器背景",
     "en": "Editor Background"
