@@ -6,11 +6,16 @@ const SUPPORTED_SURFACES = new Set([SETTINGS_PAGE_SURFACE]);
 
 const GRID_MODES = ['off', 'grid', 'dots'];
 const GRID_STRENGTHS = ['standard', 'high'];
+const DISPLAY_SCOPES = ['editor', 'window'];
 const LEGACY_STRENGTH_MAP = {
   normal: 'standard',
   strong: 'high',
 };
-const DEFAULT_CONFIG = { grid_mode: 'dots', grid_strength: 'standard' };
+const LEGACY_SCOPE_MAP = {
+  fullscreen: 'window',
+  full: 'window',
+};
+const DEFAULT_CONFIG = { grid_mode: 'dots', grid_strength: 'standard', display_scope: 'editor' };
 const CHINESE_TEXT = /[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
 
 const TEXTS = {
@@ -23,6 +28,8 @@ const TEXTS = {
     grid_modes: { off: '无', grid: '方格', dots: '点阵' },
     grid_strength_label: '对比度',
     grid_strengths: { standard: '标准', high: '高对比' },
+    display_scope_label: '显示范围',
+    display_scopes: { editor: '仅编辑区', window: '全屏背景' },
     unknown_action: '未知操作：{action}',
     unsupported_surface: '不支持的界面：{surface}',
     unsupported_method: '不支持的方法：{method}',
@@ -36,6 +43,8 @@ const TEXTS = {
     grid_modes: { off: 'Off', grid: 'Grid', dots: 'Dots' },
     grid_strength_label: 'Contrast',
     grid_strengths: { standard: 'Standard', high: 'High' },
+    display_scope_label: 'Display Scope',
+    display_scopes: { editor: 'Editor Only', window: 'Fullscreen' },
     unknown_action: 'Unknown action: {action}',
     unsupported_surface: 'Unsupported surface: {surface}',
     unsupported_method: 'Unsupported method: {method}',
@@ -43,6 +52,7 @@ const TEXTS = {
 };
 
 let locale = 'zh';
+let hostSupportsScope = null;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -78,6 +88,11 @@ function normalize(cfg) {
   if (GRID_STRENGTHS.includes(strength)) {
     out.grid_strength = strength;
   }
+  let scope = String(cfg.display_scope ?? '').trim().toLowerCase();
+  scope = LEGACY_SCOPE_MAP[scope] || scope;
+  if (DISPLAY_SCOPES.includes(scope)) {
+    out.display_scope = scope;
+  }
   return out;
 }
 
@@ -86,7 +101,7 @@ function mergeValues(cfg, values) {
     return normalize(cfg);
   }
   const merged = { ...cfg };
-  for (const key of ['grid_mode', 'grid_strength']) {
+  for (const key of ['grid_mode', 'grid_strength', 'display_scope']) {
     if (typeof values[key] === 'string') {
       merged[key] = values[key];
     }
@@ -118,15 +133,47 @@ function saveConfig(cfg) {
   }
 }
 
+function updateScopeSupport(res) {
+  if (isPlainObject(res)) {
+    hostSupportsScope = typeof res.scope === 'string' && res.scope.trim() !== '';
+  }
+}
+
+function probeScopeSupport() {
+  if (hostSupportsScope !== null) {
+    return hostSupportsScope;
+  }
+  try {
+    const res = callHost('host.ui.backdrop', {});
+    updateScopeSupport(res);
+  } catch (err) {
+    if (err && err.code === -32601) {
+      return true;
+    }
+    throw err;
+  }
+  return hostSupportsScope !== false;
+}
+
+function effectiveConfig(cfg) {
+  if (hostSupportsScope === false && cfg.display_scope !== 'editor') {
+    return { ...cfg, display_scope: 'editor' };
+  }
+  return cfg;
+}
+
 function syncHostBackground(cfg) {
   const isGrid = cfg.grid_mode === 'grid';
   try {
-    return callHost('host.ui.set_backdrop', {
+    const res = callHost('host.ui.set_backdrop', {
       id: isGrid ? 'paper-grid' : 'paper-dots',
       enabled: cfg.grid_mode !== 'off',
       pattern: isGrid ? 'paper_grid' : 'paper_dots',
       contrast: cfg.grid_strength,
+      scope: cfg.display_scope,
     });
+    updateScopeSupport(res);
+    return res;
   } catch (err) {
     if (err && err.code === -32601) {
       return null;
@@ -145,22 +192,32 @@ function validateSurface(params) {
 
 function buildPage(cfg, status = '') {
   const t = text();
+  const visibleCfg = effectiveConfig(cfg);
   const items = [
     {
       kind: 'segmented',
       id: 'grid_mode',
       label: t.grid_mode_label,
-      value: cfg.grid_mode,
+      value: visibleCfg.grid_mode,
       options: GRID_MODES.map((k) => ({ value: k, label: t.grid_modes[k] })),
     },
     {
       kind: 'segmented',
       id: 'grid_strength',
       label: t.grid_strength_label,
-      value: cfg.grid_strength,
+      value: visibleCfg.grid_strength,
       options: GRID_STRENGTHS.map((k) => ({ value: k, label: t.grid_strengths[k] })),
     },
   ];
+  if (hostSupportsScope !== false) {
+    items.push({
+      kind: 'segmented',
+      id: 'display_scope',
+      label: t.display_scope_label,
+      value: visibleCfg.display_scope,
+      options: DISPLAY_SCOPES.map((k) => ({ value: k, label: t.display_scopes[k] })),
+    });
+  }
   return {
     title: t.page_title,
     status,
@@ -190,10 +247,17 @@ function handle(method, params) {
     validateSurface(params);
     let cfg = loadConfig();
     const values = params.values;
-    if (isPlainObject(values) && ('grid_mode' in values || 'grid_strength' in values)) {
+    if (
+      isPlainObject(values) &&
+      ('grid_mode' in values || 'grid_strength' in values || 'display_scope' in values)
+    ) {
       cfg = mergeValues(cfg, values);
-      saveConfig(cfg);
       syncHostBackground(cfg);
+      cfg = effectiveConfig(cfg);
+      saveConfig(cfg);
+    } else {
+      probeScopeSupport();
+      cfg = effectiveConfig(cfg);
     }
     return { page: buildPage(cfg), values: cfg };
   }
@@ -203,9 +267,10 @@ function handle(method, params) {
     const t = text();
     const actionId = String(params.action_id || '').trim();
     if (actionId === 'reset_default') {
-      const cfg = { ...DEFAULT_CONFIG };
-      saveConfig(cfg);
+      let cfg = { ...DEFAULT_CONFIG };
       syncHostBackground(cfg);
+      cfg = effectiveConfig(cfg);
+      saveConfig(cfg);
       const status = t.reset_done;
       return {
         ok: true,
@@ -216,7 +281,7 @@ function handle(method, params) {
       };
     }
 
-    const cfg = loadConfig();
+    const cfg = effectiveConfig(loadConfig());
     const status = t.unknown_action.replace('{action}', actionId);
     return {
       ok: false,

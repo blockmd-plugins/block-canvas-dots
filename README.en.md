@@ -8,6 +8,7 @@ Like writing in a dotted notebook or on grid paper in GoodNotes, this plugin add
 
 - **Three paper styles**: Switch anytime between None, Dots, and Grid to match how you like to write.
 - **Two contrast levels**: Choose between Standard and High contrast so the pattern stays clear without distracting from your words.
+- **Editor or Fullscreen scope**: Keep the paper pattern inside the editor column or extend it across the main workspace window chrome (automatically clearing the top brand artwork band and outline rail while keeping floating panels, menus, and dialogs isolated; excludes dedicated full-window modes and standalone Quick Note windows).
 - **Instant preview and reset**: Changes take effect as soon as you pick them in plugin settings, with one-click Reset Default.
 
 **Install**: Open Block Settings -> App Store and search **Editor Background**, or enter `blockmd-plugins/block-canvas-dots`.
