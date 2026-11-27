@@ -11,8 +11,8 @@
   "author": "Block Community",
   "repo": "blockmd-plugins/block-canvas-dots",
   "summary": {
-    "zh": "像纸质点阵手账本一样，给写作区或全屏窗口铺上对齐文字的点阵或方格底纹",
-    "en": "Give your editor or full window a line-aligned dot or grid paper backdrop"
+    "zh": "像纸质点阵手账本一样，给写作区铺上对齐文字的点阵或方格底纹，支持铺满整块编辑区",
+    "en": "Give your editor a line-aligned dot or grid paper backdrop, in the text column or full editor"
   },
   "entry": {
     "js": "main.js"
@@ -32,8 +32,8 @@
       "en": "Configure dot or grid patterns, contrast, and display scope"
     },
     "ui:appearance": {
-      "zh": "在编辑区或全屏窗口底层渲染点阵与方格背景",
-      "en": "Render line-aligned dot or grid backdrops in the editor or full window"
+      "zh": "在编辑区正文列或整块编辑区画布底层渲染点阵与方格背景",
+      "en": "Render line-aligned dot or grid backdrops across the text column or full editor canvas"
     }
   },
   "surfaces": [
