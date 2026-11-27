@@ -4,8 +4,10 @@
   <img alt="Editor Background" src="assets/card-en-light.png">
 </picture>
 
-- **Line-aligned**: Dots and grid lines match editor line height to guide your eyes.
-- **Contrast presets**: Switch between None, Dots, and Grid with Standard or High Contrast.
-- **Instant apply**: Toggle directly from the plugin settings page with one-click Reset Default.
+Like writing in a dotted notebook or on grid paper in GoodNotes, this plugin adds a subtle dot or grid pattern to your writing area. Every dot and line aligns cleanly with each line of text, making long notes easier to scan without losing your place.
+
+- **Three paper styles**: Switch anytime between None, Dots, and Grid to match how you like to write.
+- **Two contrast levels**: Choose between Standard and High contrast so the pattern stays clear without distracting from your words.
+- **Instant preview and reset**: Changes take effect as soon as you pick them in plugin settings, with one-click Reset Default.
 
 **Install**: Open Block Settings -> App Store and search **Editor Background**, or enter `blockmd-plugins/block-canvas-dots`.
