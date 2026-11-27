@@ -288,11 +288,15 @@ jobs:
                     state.storage.set(params.key, params.value);
                     return { ok: true };
                   }
+                  if (method === 'host.ui.backdrop') {
+                    return state.backdrop || { id: 'paper-dots', enabled: true, pattern: 'paper_dots', contrast: 'standard', scope: 'editor' };
+                  }
                   if (method === 'host.ui.set_backdrop') {
                     const id = params.id;
                     const enabled = params.enabled;
                     const pattern = params.pattern;
                     const contrast = params.contrast;
+                    const scope = params.scope === 'fullscreen' ? 'window' : (params.scope || 'editor');
                     if (id !== 'paper-dots' && id !== 'paper-grid') {
                       throw new Error('invalid backdrop id: ' + id);
                     }
@@ -305,7 +309,10 @@ jobs:
                     if (contrast !== 'standard' && contrast !== 'high') {
                       throw new Error('invalid backdrop contrast: ' + contrast);
                     }
-                    state.backdrop = { id, enabled, pattern, contrast };
+                    if (scope !== 'editor' && scope !== 'window') {
+                      throw new Error('invalid backdrop scope: ' + scope);
+                    }
+                    state.backdrop = { id, enabled, pattern, contrast, scope };
                     state.setBackdropCalls.push(state.backdrop);
                     return state.backdrop;
                   }
@@ -366,15 +373,18 @@ jobs:
               const beforeSwitch = sdk.state.setBackdropCalls.length;
               const switched = rpc('plugin.render', {
                 surface: 'settings_page',
-                values: { grid_mode: 'grid', grid_strength: 'high' },
+                values: { grid_mode: 'grid', grid_strength: 'high', display_scope: 'window' },
               });
               checkText(switched.page, locale, `${locale} render switch`);
               requireCond(
-                switched?.values?.grid_mode === 'grid' && switched?.values?.grid_strength === 'high',
+                switched?.values?.grid_mode === 'grid' &&
+                  switched?.values?.grid_strength === 'high' &&
+                  switched?.values?.display_scope === 'window',
                 `${locale}: render switch did not return updated values`,
               );
               requireCond(
-                JSON.stringify(sdk.state.storage.get('config')) === JSON.stringify({ grid_mode: 'grid', grid_strength: 'high' }),
+                JSON.stringify(sdk.state.storage.get('config')) ===
+                  JSON.stringify({ grid_mode: 'grid', grid_strength: 'high', display_scope: 'window' }),
                 `${locale}: render switch did not update storage`,
               );
               const switchCall = sdk.state.setBackdropCalls.at(-1);
@@ -383,7 +393,8 @@ jobs:
                   switchCall?.id === 'paper-grid' &&
                   switchCall?.enabled === true &&
                   switchCall?.pattern === 'paper_grid' &&
-                  switchCall?.contrast === 'high',
+                  switchCall?.contrast === 'high' &&
+                  switchCall?.scope === 'window',
                 `${locale}: render switch did not call host.ui.set_backdrop`,
               );
 
@@ -397,11 +408,14 @@ jobs:
               requireCond(res?.tone === 'success', `${locale}: reset_default tone must be 'success'`);
               requireCond(Boolean(res?.status), `${locale}: missing action status`);
               requireCond(
-                res?.values?.grid_mode === 'dots' && res?.values?.grid_strength === 'standard',
+                res?.values?.grid_mode === 'dots' &&
+                  res?.values?.grid_strength === 'standard' &&
+                  res?.values?.display_scope === 'editor',
                 `${locale}: reset_default did not return default values`,
               );
               requireCond(
-                JSON.stringify(sdk.state.storage.get('config')) === JSON.stringify({ grid_mode: 'dots', grid_strength: 'standard' }),
+                JSON.stringify(sdk.state.storage.get('config')) ===
+                  JSON.stringify({ grid_mode: 'dots', grid_strength: 'standard', display_scope: 'editor' }),
                 `${locale}: reset_default did not save default config`,
               );
               const resetCall = sdk.state.setBackdropCalls.at(-1);
@@ -410,7 +424,8 @@ jobs:
                   resetCall?.id === 'paper-dots' &&
                   resetCall?.enabled === true &&
                   resetCall?.pattern === 'paper_dots' &&
-                  resetCall?.contrast === 'standard',
+                  resetCall?.contrast === 'standard' &&
+                  resetCall?.scope === 'editor',
                 `${locale}: reset_default did not call host.ui.set_backdrop`,
               );
               checkText(res.status, locale, `${locale} action.status`);
